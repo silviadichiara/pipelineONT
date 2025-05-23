@@ -2,7 +2,6 @@
 
 # === USER INPUT ===
 read -p "Directory containing FASTQ files (from Dorado): " FASTQ_DIR
-read -p "Kraken2 executable path: " KRAKEN2_PATH
 read -p "Kraken2 database path: " DB_PATH
 read -p "Kraken2 output directory: " KRAKEN2_OUT_DIR
 read -p "Filtered output directory: " FILTERED_OUT_DIR
@@ -28,7 +27,7 @@ for INPUT_FILE in "$FASTQ_DIR"/*.fastq; do
     CLASSIFIED="$KRAKEN2_OUT_DIR/${BASE}_classified.out"
 
     echo "→ Classifying $INPUT_FILE..."
-    "$KRAKEN2_PATH" --db "$DB_PATH" \
+    kraken2 --db "$DB_PATH" \
         --output "$CLASSIFIED" \
         --report "$REPORT" \
         --threads "$THREADS" \
