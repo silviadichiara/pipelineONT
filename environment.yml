@@ -1,0 +1,49 @@
+name: hybrid-genomics
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+dependencies:
+  # Base tools
+  - python=3.10
+  - pip
+  - bash
+  - samtools
+  - bcftools
+  - seqtk
+  - fastp
+  - fastqc
+  - qualimap
+  - kraken2
+  - nanoplot
+
+  # Assembly tools
+  - flye
+  - canu
+  - wtdbg
+  # - nextdenovo  # Install manually: https://github.com/Nextomics/NextDenovo
+  # - hifiasm     # Install manually: https://github.com/chhylp123/hifiasm
+
+  # Polishing
+  - racon
+  - medaka  # often better in a separate env, e.g. 'medaka_env'
+  - bwa
+  - pilon
+  - minimap2
+
+  # Comparison & alignment
+  - quast
+  - mummer
+  - blast
+  - emboss  # includes glsearch
+
+  # Optional
+  - git
+  - wget
+  - unzip
+  - gawk
+  - parallel
+
+  # Pip packages (if needed)
+  - pip:
+      - pod5  # Only if Python API is used
