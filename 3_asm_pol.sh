@@ -15,26 +15,22 @@ PROJECT_NAME="HCMV"
 
 mkdir -p "$ROOT"
 
-# === CHECK INPUT FILE ===
 if [ ! -s "$READS" ]; then
   echo "Error: reads file not found or empty: $READS"
   exit 1
 fi
 
-echo "Activating assembly environment: $ASSEMBLY_ENV"
-conda init
 conda activate "$ASSEMBLY_ENV"
 
-########################################
-# 1. NEXTDENOVO
-########################################
-echo "Running NextDenovo..."
+# NEXTDENOVO
 ND_DIR="$ROOT/nextdenovo"
-mkdir -p "$ND_DIR"
-FOFN="$ND_DIR/input.fofn"
-echo "$READS" > "$FOFN"
-
-cat > "$ND_DIR/run.cfg" <<EOF
+if [ -d "$ND_DIR" ] && [ "$(ls -A "$ND_DIR")" ]; then
+  echo "Skipping NextDenovo: already completed."
+else
+  echo "Running NextDenovo..."
+  mkdir -p "$ND_DIR"
+  echo "$READS" > "$ND_DIR/input.fofn"
+  cat > "$ND_DIR/run.cfg" <<EOF
 [General]
 job_type = local
 job_prefix = $PROJECT_NAME
@@ -54,129 +50,108 @@ minimap2_options = -t $THREADS
 [assemble_option]
 minimap2_options = -t $THREADS
 EOF
+  nextDenovo "$ND_DIR/run.cfg" | tee "$ND_DIR/nextdenovo.log"
+fi
 
-nextDenovo "$ND_DIR/run.cfg" | tee "$ND_DIR/nextdenovo.log"
-
-########################################
-# 2. CANU
-########################################
-echo "Running Canu..."
+# CANU
 Canu_DIR="$ROOT/canu"
-mkdir -p "$Canu_DIR"
-canu -p "$PROJECT_NAME" \
-     -d "$Canu_DIR" \
-     genomeSize="$GENOME_SIZE" \
-     -nanopore-raw "$READS" \
-     useGrid=false \
-     minReadLength=500 \
-     maxThreads=$THREADS 
+if [ -d "$Canu_DIR" ] && [ "$(ls -A "$Canu_DIR")" ]; then
+  echo "Skipping Canu: already completed."
+else
+  echo "Running Canu..."
+  mkdir -p "$Canu_DIR"
+  canu -p "$PROJECT_NAME" -d "$Canu_DIR" genomeSize="$GENOME_SIZE" -nanopore-raw "$READS" useGrid=false minReadLength=500 maxThreads=$THREADS
+fi
 
-########################################
-# 3. FLYE
-########################################
-echo "Running Flye..."
-export PATH="/home/silviad/minimap2-2.29_x64-linux:$PATH"
-
+# FLYE
 Flye_DIR="$ROOT/flye"
-mkdir -p "$Flye_DIR"
-flye --nano-corr "$READS" \
-     --out-dir "$Flye_DIR" \
-     --threads "$THREADS" \
-     --genome-size "$GENOME_SIZE" \
-     --min-overlap 1000 \
-     --asm-coverage 50 | tee "$Flye_DIR/flye.log"
- 
+if [ -d "$Flye_DIR" ] && [ "$(ls -A "$Flye_DIR")" ]; then
+  echo "Skipping Flye: already completed."
+else
+  echo "Running Flye..."
+  mkdir -p "$Flye_DIR"
+  flye --nano-corr "$READS" --out-dir "$Flye_DIR" --threads "$THREADS" --genome-size "$GENOME_SIZE" --min-overlap 1000 --asm-coverage 50 | tee "$Flye_DIR/flye.log"
+fi
 
-########################################
-# 4. WTDBG2
-########################################
-echo "Running Wtdbg2..."
+# WTDBG2
 Wtdbg2_DIR="$ROOT/wtdbg2"
-mkdir -p "$Wtdbg2_DIR"
-TRIMMED_CANU_READS="${Canu_DIR}/${PROJECT_NAME}.trimmedReads.fasta.gz"
-gunzip -c "$TRIMMED_CANU_READS" > "$Wtdbg2_DIR/corrected_reads.fasta"
+if [ -d "$Wtdbg2_DIR" ] && [ "$(ls -A "$Wtdbg2_DIR")" ]; then
+  echo "Skipping WTDBG2: already completed."
+else
+  echo "Running Wtdbg2..."
+  mkdir -p "$Wtdbg2_DIR"
+  gunzip -c "$Canu_DIR/${PROJECT_NAME}.trimmedReads.fasta.gz" > "$Wtdbg2_DIR/corrected_reads.fasta"
+  wtdbg2 -i "$Wtdbg2_DIR/corrected_reads.fasta" -o "$Wtdbg2_DIR/wtdbg_assembly" -t $THREADS -g $GENOME_SIZE -p 0 -k 15 -AS 2 -s 0.05 -L 5000
+  wtpoa-cns -t $THREADS -i "$Wtdbg2_DIR/wtdbg_assembly.ctg.lay.gz" -fo "$Wtdbg2_DIR/wtdbg_assembly.fasta"
+fi
 
-wtdbg2 -i "$Wtdbg2_DIR/corrected_reads.fasta" -o "$Wtdbg2_DIR/wtdbg_assembly" -t $THREADS -g $GENOME_SIZE -p 0 -k 15 -AS 2 -s 0.05 -L 5000
-wtpoa-cns -t $THREADS -i "$Wtdbg2_DIR/wtdbg_assembly.ctg.lay.gz" -fo "$Wtdbg2_DIR/wtdbg_assembly.fasta"
-
-########################################
-# 5. HIFIASM
-########################################
-echo "Running Hifiasm..."
+# HIFIASM
 Hifiasm_DIR="$ROOT/hifiasm"
-mkdir -p "$Hifiasm_DIR"
-hifiasm -o "$Hifiasm_DIR/$PROJECT_NAME" -t $THREADS --ont "$READS"
-
-HIFIASM_GFA="$Hifiasm_DIR/${PROJECT_NAME}.bp.p_ctg.gfa"
 HIFIASM_FASTA="$Hifiasm_DIR/${PROJECT_NAME}_from_gfa.fasta"
-awk '/^S/{print ">"$2"\n"$3}' "$HIFIASM_GFA" > "$HIFIASM_FASTA"
+if [ -s "$HIFIASM_FASTA" ]; then
+  echo "Skipping Hifiasm: already completed."
+else
+  echo "Running Hifiasm..."
+  mkdir -p "$Hifiasm_DIR"
+  hifiasm -o "$Hifiasm_DIR/$PROJECT_NAME" -t $THREADS --ont "$READS" 2> "$Hifiasm_DIR/hifiasm_error.log"
+  awk '/^S/{print ">"$2"\n"$3}' "$Hifiasm_DIR/${PROJECT_NAME}.bp.p_ctg.gfa" > "$HIFIASM_FASTA"
+fi
 
-echo "Deactivating assembly environment"
 conda deactivate
-echo "Activating polishing environment: $POLISHING_ENV"
 conda activate "$POLISHING_ENV"
 
-########################################
-# 6. QUAST pre-polishing
-########################################
-echo "Running QUAST pre-polishing..."
+# QUAST PRE
 QUAST_PRE="$ROOT/quast_results/pre_polishing"
-mkdir -p "$QUAST_PRE"
-declare -A assemblies=(
-  ["canu"]="$Canu_DIR/${PROJECT_NAME}.contigs.fasta"
-  ["nextdenovo"]="$(find "$ND_DIR" -name '*nd.asm*.fasta' | head -n1)"
-  ["flye"]="$Flye_DIR/assembly.fasta"
-  ["wtdbg2"]="$Wtdbg2_DIR/wtdbg_assembly.fasta"
-  ["hifiasm"]="$HIFIASM_FASTA"
-)
+if [ -d "$QUAST_PRE" ] && [ "$(ls -A "$QUAST_PRE")" ]; then
+  echo "Skipping QUAST pre-polishing: already completed."
+else
+  echo "Running QUAST pre-polishing..."
+  mkdir -p "$QUAST_PRE"
+  declare -A assemblies=(
+    ["canu"]="$Canu_DIR/${PROJECT_NAME}.contigs.fasta"
+    ["nextdenovo"]="$(find "$ND_DIR" -name '*nd.asm*.fasta' | head -n1)"
+    ["flye"]="$Flye_DIR/assembly.fasta"
+    ["wtdbg2"]="$Wtdbg2_DIR/wtdbg_assembly.fasta"
+    ["hifiasm"]="$HIFIASM_FASTA"
+  )
+  quast_cmd="quast.py -t $THREADS -o $QUAST_PRE"
+  for tool in "${!assemblies[@]}"; do
+    [ -s "${assemblies[$tool]}" ] && quast_cmd+=" ${assemblies[$tool]}"
+  done
+  eval "$quast_cmd"
+fi
 
-quast_cmd="quast.py -t $THREADS -o $QUAST_PRE"
-for tool in "${!assemblies[@]}"; do
-  if [ -s "${assemblies[$tool]}" ]; then
-    quast_cmd+=" ${assemblies[$tool]}"
-  else
-    echo "Missing file for $tool: ${assemblies[$tool]}"
-  fi
-done
-eval "$quast_cmd"
-
-########################################
-# 7. POLISHING: Racon + Medaka
-########################################
-echo "Running polishing with Racon and Medaka..."
+# POLISHING: Racon + Medaka
 POLISH_DIR="$ROOT/polished_assemblies"
 mkdir -p "$POLISH_DIR"
-
 for ASSEMBLY in "${assemblies[@]}"; do
   [ ! -s "$ASSEMBLY" ] && continue
   SAMPLE=$(basename "$ASSEMBLY" .fasta)
   OUT_DIR="$POLISH_DIR/$SAMPLE"
-  mkdir -p "$OUT_DIR"
-  
+  if [ -s "$OUT_DIR/medaka/consensus.fasta" ]; then
+    echo "Skipping polishing for $SAMPLE: already completed."
+    continue
+  fi
   echo "--> Polishing $SAMPLE"
+  mkdir -p "$OUT_DIR"
   minimap2 -ax map-ont -t $THREADS "$ASSEMBLY" "$READS" > "$OUT_DIR/reads.sam"
   racon -t $THREADS "$READS" "$OUT_DIR/reads.sam" "$ASSEMBLY" > "$OUT_DIR/racon_polished.fasta"
-
-  echo "Running Medaka env: $MEDAKA_ENV_PATH..."
   source "$MEDAKA_ENV_PATH/bin/activate"
   medaka_consensus -i "$READS" -d "$OUT_DIR/racon_polished.fasta" -o "$OUT_DIR/medaka" -m "$MODEL"
   deactivate
-
-  [ ! -s "$OUT_DIR/medaka/consensus.fasta" ] && echo "Medaka did not generate output for $SAMPLE"
 done
 
-########################################
-# 8. QUAST post-polishing
-########################################
-echo "Running QUAST post-polishing..."
+# QUAST POST
 QUAST_POST="$ROOT/quast_results/post_polishing"
-mkdir -p "$QUAST_POST"
-post_files=$(find "$POLISH_DIR" -name "consensus.fasta")
+if [ -d "$QUAST_POST" ] && [ "$(ls -A "$QUAST_POST")" ]; then
+  echo "Skipping QUAST post-polishing: already completed."
+else
+  echo "Running QUAST post-polishing..."
+  mkdir -p "$QUAST_POST"
+  post_files=$(find "$POLISH_DIR" -name "consensus.fasta")
+  quast.py -t $THREADS -o "$QUAST_POST" $post_files
+fi
 
-quast.py -t $THREADS -o "$QUAST_POST" $post_files
-
-echo "Deactivating polishing environment"
 conda deactivate
 
-
-echo "Pipeline completed"
+echo "Pipeline completed."
