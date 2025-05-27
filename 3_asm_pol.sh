@@ -100,6 +100,13 @@ fi
 conda deactivate
 conda activate "$POLISHING_ENV"
 
+ declare -A assemblies=(
+    ["canu"]="$Canu_DIR/${PROJECT_NAME}.contigs.fasta"
+    ["nextdenovo"]="$(find "$ND_DIR" -name '*nd.asm*.fasta' | head -n1)"
+    ["flye"]="$Flye_DIR/assembly.fasta"
+    ["wtdbg2"]="$Wtdbg2_DIR/wtdbg_assembly.fasta"
+    ["hifiasm"]="$HIFIASM_FASTA"
+  )
 # QUAST PRE
 QUAST_PRE="$ROOT/quast_results/pre_polishing"
 if [ -d "$QUAST_PRE" ] && [ "$(ls -A "$QUAST_PRE")" ]; then
@@ -107,13 +114,6 @@ if [ -d "$QUAST_PRE" ] && [ "$(ls -A "$QUAST_PRE")" ]; then
 else
   echo "Running QUAST pre-polishing..."
   mkdir -p "$QUAST_PRE"
-  declare -A assemblies=(
-    ["canu"]="$Canu_DIR/${PROJECT_NAME}.contigs.fasta"
-    ["nextdenovo"]="$(find "$ND_DIR" -name '*nd.asm*.fasta' | head -n1)"
-    ["flye"]="$Flye_DIR/assembly.fasta"
-    ["wtdbg2"]="$Wtdbg2_DIR/wtdbg_assembly.fasta"
-    ["hifiasm"]="$HIFIASM_FASTA"
-  )
   quast_cmd="quast.py -t $THREADS -o $QUAST_PRE"
   for tool in "${!assemblies[@]}"; do
     [ -s "${assemblies[$tool]}" ] && quast_cmd+=" ${assemblies[$tool]}"
@@ -136,9 +136,8 @@ for ASSEMBLY in "${assemblies[@]}"; do
   mkdir -p "$OUT_DIR"
   minimap2 -ax map-ont -t $THREADS "$ASSEMBLY" "$READS" > "$OUT_DIR/reads.sam"
   racon -t $THREADS "$READS" "$OUT_DIR/reads.sam" "$ASSEMBLY" > "$OUT_DIR/racon_polished.fasta"
-  source "$MEDAKA_ENV_PATH/bin/activate"
   medaka_consensus -i "$READS" -d "$OUT_DIR/racon_polished.fasta" -o "$OUT_DIR/medaka" -m "$MODEL"
-  deactivate
+
 done
 
 # QUAST POST
