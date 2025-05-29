@@ -7,14 +7,13 @@ read -p "==> Input reads (FASTQ file): " READS
 read -p "==> Output directory: " ROOT
 read -p "==> Estimated genome size (e.g. 235k): " GENOME_SIZE
 read -p "==> Medaka model (e.g. r1041_e82_400bps_sup_variant_v4.2.0): " MODEL
-
+read -p "==> Threads to use: " THREADS
+read -p "==> project name (e.g. HCMV): " PROJECT_NAME
 # === ENVIRONMENT SETUP ===
 ASSEMBLY_ENV="assembly_env"
 POLISHING_ENV="polishing_env"
 PREPROCESSING_ENV="preprocessing_env"
 QC_ENV="qc_env"
-THREADS=8
-PROJECT_NAME="HCMV"
 
 mkdir -p "$ROOT"
 
