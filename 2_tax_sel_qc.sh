@@ -6,10 +6,10 @@ read -p "Kraken2 database path: " DB_PATH
 read -p "Kraken2 output directory: " KRAKEN2_OUT_DIR
 read -p "Filtered output directory: " FILTERED_OUT_DIR
 read -p "TaxID to filter for (e.g., 10359 for HCMV): " TAXID
-read -p "Merged FASTQ file for NanoPlot: " INPUT_FASTQ
 read -p "NanoPlot output directory: " NANOPLOT_DIR
 
 THREADS=8
+MERGED_FASTQ="$FILTERED_OUT_DIR/merged_taxid${TAXID}.fastq"
 
 # === PREPARE OUTPUT DIRS ===
 mkdir -p "$KRAKEN2_OUT_DIR"
@@ -17,7 +17,7 @@ mkdir -p "$FILTERED_OUT_DIR"
 mkdir -p "$NANOPLOT_DIR"
 
 # === STEP 1: Kraken2 Classification ===
-echo "[1/3] Running Kraken2 classification..."
+echo "[1/4] Running Kraken2 classification..."
 
 for INPUT_FILE in "$FASTQ_DIR"/*.fastq; do
     [ -f "$INPUT_FILE" ] || { echo "No FASTQ files found in $FASTQ_DIR"; exit 1; }
@@ -31,15 +31,15 @@ for INPUT_FILE in "$FASTQ_DIR"/*.fastq; do
         --output "$CLASSIFIED" \
         --report "$REPORT" \
         --threads "$THREADS" \
-        "$INPUT_FILE"
-
-    [ $? -eq 0 ] || { echo "Kraken2 failed on $INPUT_FILE"; exit 1; }
+        "$INPUT_FILE" || { echo "Kraken2 failed on $INPUT_FILE"; exit 1; }
 done
 
 echo "Kraken2 classification complete."
 
 # === STEP 2: TaxID Filtering ===
-echo "[2/3] Filtering reads for TaxID $TAXID..."
+echo "[2/4] Filtering reads for TaxID $TAXID..."
+
+> "$MERGED_FASTQ"  # Inizializza file di merge
 
 for CLASSIFIED_FILE in "$KRAKEN2_OUT_DIR"/*_classified.out; do
     BASE=$(basename "$CLASSIFIED_FILE" _classified.out)
@@ -53,14 +53,20 @@ for CLASSIFIED_FILE in "$KRAKEN2_OUT_DIR"/*_classified.out; do
 
     if [ -s "$IDS" ]; then
         seqtk subseq "$FASTQ" "$IDS" > "$OUT_FASTQ"
-        echo "Filtered FASTQ: $OUT_FASTQ"
+        cat "$OUT_FASTQ" >> "$MERGED_FASTQ"
+        echo "Filtered and added: $OUT_FASTQ"
     else
         echo "No matching reads for TaxID $TAXID in $BASE"
     fi
 done
 
+if [ ! -s "$MERGED_FASTQ" ]; then
+    echo "Error: No reads retained after filtering. Exiting."
+    exit 1
+fi
+
 # === STEP 3: NanoPlot QC ===
-echo "[3/3] Running NanoPlot..."
+echo "[3/4] Running NanoPlot on merged file..."
 
 if ! command -v NanoPlot &> /dev/null; then
     echo "Error: NanoPlot is not installed."
@@ -68,12 +74,12 @@ if ! command -v NanoPlot &> /dev/null; then
 fi
 
 NanoPlot \
-    --fastq "$INPUT_FASTQ" \
+    --fastq "$MERGED_FASTQ" \
     --loglength \
     --threads "$THREADS" \
     --plots dot kde \
-    --title "QC Report - $(basename "$INPUT_FASTQ")" \
-    --prefix HCMV_report \
+    --title "QC Report - merged_taxid${TAXID}.fastq" \
+    --prefix "HCMV_taxid${TAXID}_report" \
     --outdir "$NANOPLOT_DIR"
 
-echo "NanoPlot analysis complete. Results in: $NANOPLOT_DIR"
+echo "[4/4] NanoPlot analysis complete. Results in: $NANOPLOT_DIR"
