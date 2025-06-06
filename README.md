@@ -23,12 +23,11 @@ This pipeline includes scripts and configurations for:
   
 - **Comparison & Evaluation**: QUAST, MUMmer, Minimap2, BLAST, GLSEARCH, BCFtools
     
+- **Polishing**:
 
-**Polishing**:
+  -*DNA-based*: Racon, Medaka
 
--*DNA-based*: Racon, Medaka
-
--*RNA-based*: BWA, Pilon
+  -*RNA-based*: BWA, Pilon
 
 
 ## ✅ Requirements
