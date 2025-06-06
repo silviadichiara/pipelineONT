@@ -42,7 +42,7 @@ Run the script create_conda_envs.sh
 ## 🚀 Running the Pipeline
 Run the main orchestration script
 The pipeline is controlled by a master bash script which runs all analysis steps and logs progress:
-bash pipeline_ONT.sh
+bash pipelineONT.sh
 
 ## 📊 Outputs
 - Polished genome assemblies and their stats and reports;
