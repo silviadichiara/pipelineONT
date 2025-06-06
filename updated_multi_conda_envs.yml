@@ -1,0 +1,127 @@
+
+# === Conda Environments Setup ===
+# Each section describes one environment to be created separately.
+# In case of struggles while installing some of the tools via conda, see manual GitHub installation notes.
+
+# ----------------------------
+# Environment: preprocessing_env
+# ----------------------------
+name: preprocessing_env
+channels:
+  - bioconda
+  - conda-forge
+  - hcc
+  - defaults
+dependencies:
+  - lib-pod5
+  - minimap2=2.28
+  - dorado
+
+---
+
+# ----------------------------
+# Environment: kraken2_env
+# ----------------------------
+name: kraken2_env
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+dependencies:
+  - kraken2
+  - seqtk
+
+---
+
+# ----------------------------
+# Environment: assembly_env
+# ----------------------------
+name: assembly_env
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+dependencies:
+  - flye
+  - canu
+  - hifiasm
+  - wtdbg
+  - paralleltask
+  - nextdenovo
+
+---
+
+# ----------------------------
+# Environment: polishing_env
+# ----------------------------
+name: polishing_env
+channels:
+  - bioconda
+  - nanoporetech
+  - conda-forge
+  - defaults
+dependencies:
+  - medaka
+  - racon
+  - quast
+
+---
+
+# ----------------------------
+# Environment: qc_env
+# ----------------------------
+name: qc_env
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+dependencies:
+  - nanoplot
+  - fastqc
+  - qualimap
+  - bcftools
+  - samtools
+
+---
+
+# ----------------------------
+# Environment: illuminareads_env
+# ----------------------------
+name: illuminareads_env
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+dependencies:
+  - bwa
+  - pilon
+  - freebayes
+
+---
+
+# ----------------------------
+# Environment: mummer_env
+# ----------------------------
+name: mummer_env
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+dependencies:
+  - mummer
+
+---
+
+# ----------------------------
+# Environment: base
+# ----------------------------
+name: base_env
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - pandas
+  - openpyxl
+  - biopython
+  - fasta3
