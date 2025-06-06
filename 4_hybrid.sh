@@ -1,8 +1,15 @@
 #!/bin/bash
 set -euo pipefail
 shopt -s nullglob
-source /data/silvia/miniconda3/etc/profile.d/conda.sh
 
+# === LOAD CONDA (portable) ===
+if ! command -v conda &> /dev/null; then
+  echo "[ERROR] 'conda' not found in PATH. Make sure Conda is installed and initialized."
+  exit 1
+fi
+eval "$(conda shell.bash hook)"
+
+# === UTILITY FUNCTION ===
 should_run_step() {
   local output_check="$1"
   local step_name="$2"
@@ -11,10 +18,10 @@ should_run_step() {
     echo "[INFO] Output for '$step_name' already exists at: $output_check"
     read -p "Do you want to skip this step? (y to skip / n to overwrite): " choice
     if [[ "$choice" =~ ^[Yy]$ ]]; then
-      echo "Skipping $step_name..."
+      echo "[INFO] Skipping $step_name..."
       return 1
     else
-      echo "Overwriting $step_name..."
+      echo "[INFO] Overwriting $step_name..."
       return 0
     fi
   else
@@ -22,7 +29,7 @@ should_run_step() {
   fi
 }
 
-# === USER INPUT PARAMETERS ===
+# === USER INPUT ===
 read -p "Enter the path to the folder containing Illumina reads raw FASTQ files: " REMOTE_DIR
 read -p "Enter the path where you want to save the results: " LOCAL_OUTPUT_DIR
 read -p "Enter the path where to create the Kraken2 database: " DB_PATH
@@ -38,9 +45,9 @@ if [[ ! -f "$GENOME" ]]; then
 fi
 
 mkdir -p "$LOCAL_OUTPUT_DIR"
-echo "Using polished genome: $GENOME"
+echo "[INFO] Using polished genome: $GENOME"
 
-# STEP 1: KRAKEN2 DB
+# === STEP 1: KRAKEN2 DB BUILD ===
 if should_run_step "$DB_PATH/hash.k2d" "Kraken2 DB Build"; then
   echo "[STEP 1] Building Kraken2 database..."
   conda activate kraken2_env
@@ -49,7 +56,7 @@ if should_run_step "$DB_PATH/hash.k2d" "Kraken2 DB Build"; then
   conda deactivate
 fi
 
-# STEP 2: KRAKEN2 CLASSIFICATION
+# === STEP 2: KRAKEN2 CLASSIFICATION ===
 if should_run_step "$LOCAL_OUTPUT_DIR/1_kraken" "Kraken2 Classification"; then
   echo "[STEP 2] Classifying reads with Kraken2..."
   conda activate kraken2_env
@@ -65,7 +72,7 @@ if should_run_step "$LOCAL_OUTPUT_DIR/1_kraken" "Kraken2 Classification"; then
   conda deactivate
 fi
 
-# STEP 3: FILTERING WITH SEQTK
+# === STEP 3: FILTERING READS ===
 if should_run_step "$LOCAL_OUTPUT_DIR/2_seqtk_filt" "Read Filtering with seqtk"; then
   echo "[STEP 3] Filtering reads classified under TaxID $TAXID..."
   conda activate kraken2_env
@@ -76,25 +83,28 @@ if should_run_step "$LOCAL_OUTPUT_DIR/2_seqtk_filt" "Read Filtering with seqtk";
     R1="$REMOTE_DIR/${SAMPLE}_R1.fastq.gz"
     R2="$REMOTE_DIR/${SAMPLE}_R2.fastq.gz"
     ID_BASE="$LOCAL_OUTPUT_DIR/2_seqtk_filt/${SAMPLE}_tax${TAXID}_IDs"
-    awk -v taxid="$TAXID" '$1 == "C" && $3 == taxid { print $2 }' "$KRAKEN_FILE" | sed 's/[ \t].*//' | sed 's\/\/[12]$//' | sort | uniq > "${ID_BASE}_all.txt"
-    zcat "$R1" | awk 'NR%4==1 {gsub(/^@/, "", $1); split($1,a," "); split(a[1],b,"/"); print b[1]}' | sort | uniq > "${ID_BASE}_r1.txt"
-    zcat "$R2" | awk 'NR%4==1 {gsub(/^@/, "", $1); split($1,a," "); split(a[1],b,"/"); print b[1]}' | sort | uniq > "${ID_BASE}_r2.txt"
+    awk -v taxid="$TAXID" '$1 == "C" && $3 == taxid { print $2 }' "$KRAKEN_FILE" | \
+      sed 's/[ \t].*//' | sed 's/\\/\\/[12]$//' | sort | uniq > "${ID_BASE}_all.txt"
+    zcat "$R1" | awk 'NR%4==1 {gsub(/^@/, "", $1); split($1,a," "); split(a[1],b,"/"); print b[1]}' | \
+      sort | uniq > "${ID_BASE}_r1.txt"
+    zcat "$R2" | awk 'NR%4==1 {gsub(/^@/, "", $1); split($1,a," "); split(a[1],b,"/"); print b[1]}' | \
+      sort | uniq > "${ID_BASE}_r2.txt"
     comm -12 "${ID_BASE}_all.txt" "${ID_BASE}_r1.txt" | comm -12 - "${ID_BASE}_r2.txt" > "${ID_BASE}_paired.txt"
     awk '{ print "@" $1 }' "${ID_BASE}_paired.txt" > "${ID_BASE}_paired.grep"
     for END in 1 2; do
       zcat "$REMOTE_DIR/${SAMPLE}_R${END}.fastq.gz" | \
-      paste - - - - | \
-      awk -F'\t' '{ split($1, h, " "); split(h[1], b, "/"); print "@" b[1] "\t" $0 }' | \
-      grep -F -f "${ID_BASE}_paired.grep" | \
-      cut -f2- | \
-      tr '\t' '\n' | \
-      gzip > "$LOCAL_OUTPUT_DIR/2_seqtk_filt/${SAMPLE}_tax${TAXID}_R${END}.fastq.gz"
+        paste - - - - | \
+        awk -F'\t' '{ split($1, h, " "); split(h[1], b, "/"); print "@" b[1] "\t" $0 }' | \
+        grep -F -f "${ID_BASE}_paired.grep" | \
+        cut -f2- | \
+        tr '\t' '\n' | \
+        gzip > "$LOCAL_OUTPUT_DIR/2_seqtk_filt/${SAMPLE}_tax${TAXID}_R${END}.fastq.gz"
     done
   done
   conda deactivate
 fi
 
-# STEP 4: FASTQC & FASTP
+# === STEP 4: FASTQC & FASTP ===
 if should_run_step "$LOCAL_OUTPUT_DIR/3_fastqc" "FastQC and fastp"; then
   echo "[STEP 4] Running FastQC and fastp..."
   conda activate qc_env
@@ -115,7 +125,7 @@ if should_run_step "$LOCAL_OUTPUT_DIR/3_fastqc" "FastQC and fastp"; then
   conda deactivate
 fi
 
-# STEP 5: BWA + PILON
+# === STEP 5: BWA + PILON ===
 if should_run_step "$LOCAL_OUTPUT_DIR/5_bwamem_pol/pilon_polished.fasta" "BWA and Pilon Polishing"; then
   echo "[STEP 5] Aligning with BWA and polishing with Pilon..."
   conda activate illuminareads_env
@@ -140,14 +150,10 @@ if should_run_step "$LOCAL_OUTPUT_DIR/5_bwamem_pol/pilon_polished.fasta" "BWA an
   samtools index merged.bam
 
   read -p "Insert the path to pilon.jar: " PILON_JAR
-  if [[ ! -f "$PILON_JAR" ]]; then
-    echo "[ERROR] pilon.jar not found in $PILON_JAR"
-    exit 1
-  fi
+  [[ ! -f "$PILON_JAR" ]] && { echo "[ERROR] pilon.jar not found."; exit 1; }
 
-  read -p "Insert n. of GB to be assigned to Java (eg. 32G): " JAVA_RAM
+  read -p "Insert n. of GB to assign to Java (e.g. 32G): " JAVA_RAM
 
-  echo "Executing Pilon with $JAVA_RAM RAM using $PILON_JAR..."
   java -Xmx${JAVA_RAM} -jar "$PILON_JAR" \
     --genome "$GENOME" \
     --frags merged.bam \
@@ -158,30 +164,30 @@ if should_run_step "$LOCAL_OUTPUT_DIR/5_bwamem_pol/pilon_polished.fasta" "BWA an
   conda deactivate
 fi
 
-# STEP 6: QUAST
+# === STEP 6: QUAST ===
 if should_run_step "$LOCAL_OUTPUT_DIR/6_quast" "QUAST Analysis"; then
   echo "[STEP 6] Running QUAST..."
   mkdir -p "$LOCAL_OUTPUT_DIR/6_quast"
   quast.py -t "$THREADS" -o "$LOCAL_OUTPUT_DIR/6_quast" "$LOCAL_OUTPUT_DIR/5_bwamem_pol/pilon_polished.fasta"
 fi
 
-# STEP 7: MAPPING + QUALIMAP
+# === STEP 7: MAPPING + QUALIMAP ===
 if should_run_step "$LOCAL_OUTPUT_DIR/7_mapping/qualimap_report" "Qualimap Analysis"; then
-  echo "[STEP 7] Mapping with minimap2 and running Qualimap..."
+  echo "[STEP 7] Mapping and QC with Qualimap..."
   mkdir -p "$LOCAL_OUTPUT_DIR/7_mapping"
-  read -p "Enter path to filtered FASTQ files (use wildcard, e.g. /path/*.fastq): " READ_GLOB
+  read -p "Enter path to filtered FASTQ files (wildcard, e.g. /path/*.fastq): " READ_GLOB
   READ_FILES=( $READ_GLOB )
-  if [[ ${#READ_FILES[@]} -eq 0 ]]; then
-    echo "[ERROR] No FASTQ files found matching pattern: $READ_GLOB" >&2
-    exit 1
-  fi
+  [[ ${#READ_FILES[@]} -eq 0 ]] && { echo "[ERROR] No FASTQ files match: $READ_GLOB"; exit 1; }
+
   MERGED_READS="$LOCAL_OUTPUT_DIR/7_mapping/merged_reads.fastq"
   echo "[INFO] Merging ${#READ_FILES[@]} FASTQ files..."
   cat "${READ_FILES[@]}" > "$MERGED_READS"
+
   cd "$LOCAL_OUTPUT_DIR/7_mapping"
   conda activate preprocessing_env
   minimap2 -ax map-ont "$LOCAL_OUTPUT_DIR/5_bwamem_pol/pilon_polished.fasta" "$MERGED_READS" -t "$THREADS" > mapped.sam
   conda deactivate
+
   conda activate qc_env
   samtools view -bS mapped.sam | samtools sort -o mapped.sorted.bam
   samtools index mapped.sorted.bam
