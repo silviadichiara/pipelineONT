@@ -20,13 +20,16 @@ This pipeline includes scripts and configurations for:
 - **Trimming & Filtering**: fastp, seqtk
 
 - **De novo Assembly**: Flye, Canu, wtdbg2, NextDenovo, Hifiasm
+  
+- **Comparison & Evaluation**: QUAST, MUMmer, Minimap2, BLAST, GLSEARCH, BCFtools
+    
 
 **Polishing**:
 
 -*DNA-based*: Racon, Medaka
+
 -*RNA-based*: BWA, Pilon
 
-- **Comparison & Evaluation**: QUAST, MUMmer, Minimap2, BLAST, GLSEARCH, BCFtools
 
 ## ✅ Requirements
 - Bash (Linux environment)
