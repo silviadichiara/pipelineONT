@@ -36,23 +36,12 @@ This pipeline includes scripts and configurations for:
 - Compatible bioinformatics tools installed and accessible in your $PATH (see environment setup below)
 
 ## 🛠 Installation and Setup
-**1. Download environment YAML file**
-This pipeline requires specific software environments. A ready-made Conda environment YAML file is provided:
-wget [https://github.com/silviadichiara/pipelineONT/blob/main/multi_conda_envs.yml]
-Alternatively, clone the repository and find the environment.yml file inside.
-
-**2. Create the Conda environment**
-Create the environment from the YAML file:
-conda env create -f environment.yml
-Activate the environment:
-conda activate "your_env_name"
-(Replace "your_env_name" with the name specified inside the YAML file, usually under name:.)
-
+** Create the Conda environments and install tools**
+Run the script create_conda_envs.sh
 
 ## 🚀 Running the Pipeline
 Run the main orchestration script
 The pipeline is controlled by a master bash script which runs all analysis steps and logs progress:
-
 bash pipeline_ONT.sh
 
 ## 📊 Outputs
