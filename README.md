@@ -36,7 +36,7 @@ This pipeline includes scripts and configurations for:
 - Compatible bioinformatics tools installed and accessible in your $PATH (see environment setup below)
 
 ## 🛠 Installation and Setup
-** Create the Conda environments and install tools**
+**Create the Conda environments and install tools**:
 Run the script create_conda_envs.sh
 
 ## 🚀 Running the Pipeline
