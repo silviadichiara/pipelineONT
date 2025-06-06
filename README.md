@@ -9,22 +9,22 @@ It streamlines analysis from raw signal to polished genome assemblies, including
 ## 💻 Features
 This pipeline includes scripts and configurations for:
 
--**Conversion**: fast5 → pod5 using pod5tools
+- **Conversion**: fast5 → pod5 using pod5tools
 
--**Basecalling**: performed using Dorado
+- **Basecalling**: performed using Dorado
 
--**Taxonomic analysis**: Kraken2
+- **Taxonomic analysis**: Kraken2
 
--**Quality Control**: Nanoplot, FastQC, Qualimap
+- **Quality Control**: Nanoplot, FastQC, Qualimap
 
--**Trimming & Filtering**: fastp, seqtk
+- **Trimming & Filtering**: fastp, seqtk
 
--**De novo Assembly**: Flye, Canu, wtdbg2, NextDenovo, Hifiasm
+- **De novo Assembly**: Flye, Canu, wtdbg2, NextDenovo, Hifiasm
 
 **Polishing**:
 
-- *DNA-based*: Racon, Medaka
-- *RNA-based*: BWA, Pilon
+-*DNA-based*: Racon, Medaka
+-*RNA-based*: BWA, Pilon
 
 - **Comparison & Evaluation**: QUAST, MUMmer, Minimap2, BLAST, GLSEARCH, BCFtools
 
