@@ -37,8 +37,7 @@ should_run_step() {
 read -p "Enter ONT reads FASTQ file path: " READS
 read -p "Enter reference genome FASTA file path: " REFERENCE
 read -p "Enter de novo genome FASTA file path: " DENOVO_GENOME
-read -p "Enter annotation GFF3 file path: " GFF
-read -p "Enter SnpEff database name (e.g. HCMV_custom): " SNPEFF_DB
+read -p "Enter annotation GFF3 file path (dowload from NCBI): " GFF
 read -p "Enter output directory path: " OUTDIR
 read -p "Enter number of threads to use: " THREADS
 read -p "Enter Medaka model to use: " MODEL
