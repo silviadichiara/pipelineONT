@@ -1,5 +1,5 @@
 #!/bin/bash
-
+conda activate fasta3_env
 read -p "Enter path to TSV file: " TSV
 read -p "Enter path to FASTA file: " FASTA
 
@@ -70,6 +70,6 @@ write_fasta(header, masked_95_999, os.path.join(output_dir, f"{prefix}_masked_95
 regions_all = parse_tsv(tsv_file, Decimal("0.0"), Decimal("100.0"))
 masked_all = mask_sequence(sequence, regions_all)
 write_fasta(header, masked_all, os.path.join(output_dir, f"{prefix}_masked_all.fasta"))
-
+conda deactivate
 print("Masking completed. Outputs saved in:", output_dir)
 END
