@@ -18,7 +18,7 @@ mkdir -p "$KRAKEN2_OUT_DIR" "$FILTERED_OUT_DIR" "$NANOPLOT_DIR"
 
 # === [1/4] Kraken2 Classification ===
 echo "[1/4] Running Kraken2 classification..."
-
+conda activate kraken2_env
 shopt -s nullglob
 FASTQ_FILES=("$FASTQ_DIR"/*.fastq)
 if [ ${#FASTQ_FILES[@]} -eq 0 ]; then
@@ -74,10 +74,10 @@ if [ ! -s "$MERGED_FASTQ" ]; then
     echo "[ERROR] No reads retained after filtering. Exiting."
     exit 1
 fi
-
+conda deactivate
 # === [3/4] NanoPlot QC ===
 echo "[3/4] Running NanoPlot QC..."
-
+conda activate qc_env
 if ! command -v NanoPlot &> /dev/null; then
     echo "[ERROR] NanoPlot is not installed. Aborting."
     exit 1
@@ -91,6 +91,6 @@ NanoPlot \
     --title "QC Report - merged_taxid${TAXID}.fastq" \
     --prefix "HCMV_taxid${TAXID}_report" \
     --outdir "$NANOPLOT_DIR"
-
+conda deactivate
 # === [4/4] DONE ===
 echo "[4/4] NanoPlot complete. Results saved in: $NANOPLOT_DIR"
