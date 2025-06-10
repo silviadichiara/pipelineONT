@@ -14,7 +14,6 @@ fi
 
 read -p "Directory containing .pod5 files (output or existing): " POD5_DIR
 read -p "Output directory for FASTQ files: " OUT_DIR
-read -p "Output directory for Dorado basecalling models download: " DORADO_DIR
 
 THREADS=8
 LOG_DIR="${OUT_DIR}/logs"
@@ -48,13 +47,15 @@ else
 fi
 
 # === [2/3] DORADO BASECALLING ===
-echo "[2/3] Running Dorado basecalling on each .pod5 file..."
+echo "[2/3]Dorado basecalling..."
+echo "To perform basecalling, Dorado needs a basecalling model"
+read -p "Please insert the path of the directory for Dorado basecalling models download: " DORADO_DIR
 
 pushd "$DORADO_DIR" > /dev/null
 dorado download --model all
 echo "Available Dorado basecalling models:"
 ls -1
-read -p "Name of Dorado basecalling model (e.g. dna_r10.4.1_e8.2_400bps_sup@v4.3.0): " MODEL
+read -p "Insert path to the Dorado basecalling model (e.g. /home/usr/dorado_models/dna_r10.4.1_e8.2_400bps_sup@v4.3.0): " MODEL
 popd > /dev/null
 
 shopt -s nullglob
