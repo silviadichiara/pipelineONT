@@ -21,18 +21,20 @@ echo "Activating preprocessing_env and installing pod5 via pip"
 conda activate preprocessing_env
 pip install pod5
 
-echo "Downloading and extracting Dorado..."
+echo "Downloading and extracting Dorado v0.9.6..."
+echo "The current version of Dorado is suitable for both r9.4.1 and r10.4.1. Based on your sequencing run and configuration, you may need to use a newer version (v1.0.1)."
+echo "Check your chemistry and run settings and choose the correct version of Dorado on GitHub (https://github.com/nanoporetech/dorado/)."
 read -p "Path to the directory to install Dorado: " DORADO_DIR
 mkdir -p $DORADO_DIR
 cd $DORADO_DIR
-curl -L "https://cdn.oxfordnanoportal.com/software/analysis/dorado-1.0.1-linux-x64.tar.gz" -o dorado.tar.gz
+curl -L "https://cdn.oxfordnanoportal.com/software/analysis/dorado-0.9.6-linux-x64.tar.gz" -o dorado.tar.gz
 tar -xzf dorado.tar.gz
 rm dorado.tar.gz
-./dorado-1.0.1-linux-x64/bin/dorado --version
+./dorado-0.9.6-linux-x64/bin/dorado --version
 cd -
 conda deactivate
 
-DORADO_BIN="$DORADO_DIR/dorado-1.0.1-linux-x64/bin"
+DORADO_BIN="$DORADO_DIR/dorado-0.9.6-linux-x64/bin"
 if [[ ":$PATH:" != *":$DORADO_BIN:"* ]]; then
   echo "Adding Dorado to PATH in ~/.bashrc"
   echo "" >> ~/.bashrc
