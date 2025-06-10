@@ -19,7 +19,7 @@ THREADS=8
 LOG_DIR="${OUT_DIR}/logs"
 
 # === SETUP ===
-mkdir -p "$POD5_DIR" "$OUT_DIR" "$LOG_DIR" "$DORADO_DIR"
+mkdir -p "$POD5_DIR" "$OUT_DIR" "$LOG_DIR" 
 
 # === [1/3] OPTIONAL: CONVERT FAST5 → POD5 ===
 if [[ "$CONVERT_CHOICE" =~ ^[Yy]$ ]]; then
@@ -50,7 +50,7 @@ fi
 echo "[2/3]Dorado basecalling..."
 echo "To perform basecalling, Dorado needs a basecalling model"
 read -p "Please insert the path of the directory for Dorado basecalling models download: " DORADO_DIR
-
+mkdir -p "$DORADO_DIR"
 pushd "$DORADO_DIR" > /dev/null
 dorado download --model all
 echo "Available Dorado basecalling models:"
