@@ -1,5 +1,5 @@
 #!/bin/bash
-
+conda activate fasta3_env
 # Check for glsearch36
 if ! command -v glsearch36 &> /dev/null; then
   echo "glsearch36 command not found. Please install it."
@@ -91,7 +91,7 @@ done
 if [[ $in_region -eq 1 ]]; then
   process_region "$start" "$seq_len"
 fi
-
+conda deactivate
 echo "All unmasked regions extracted to: $output_file"
 echo "Alignments stored in: $alignment_dir"
 echo "Alignment summary report saved to: $report_file"
