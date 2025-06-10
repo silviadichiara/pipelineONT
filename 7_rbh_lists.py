@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+conda activate fasta3_env
 import os
 import re
 import pandas as pd
@@ -122,7 +122,7 @@ df.to_csv(os.path.join(output_dir, "RBH_all.tsv"), sep="\t", index=False)
 df_100.to_csv(os.path.join(output_dir, "RBH_100.tsv"), sep="\t", index=False)
 df_95_99.to_csv(os.path.join(output_dir, "RBH_95_99.tsv"), sep="\t", index=False)
 df_below_95.to_csv(os.path.join(output_dir, "RBH_below_95.tsv"), sep="\t", index=False)
-
+conda deactivate
 # ==== Print summary ====
 print(f"Processed {total_files} files.")
 print(f"Skipped {skipped_files} files due to missing pairs.")
