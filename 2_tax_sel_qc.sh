@@ -2,6 +2,26 @@
 set -euo pipefail
 eval "$(conda shell.bash hook)"
 
+# === UTILITY FUNCTION ===
+should_run_step() {
+  local output_check="$1"
+  local step_name="$2"
+
+  if [[ -e "$output_check" ]]; then
+    echo "[INFO] Output for '$step_name' already exists at: $output_check"
+    read -p "Do you want to skip this step? (y to skip / n to overwrite): " choice
+    if [[ "$choice" =~ ^[Yy]$ ]]; then
+      echo "[INFO] Skipping $step_name..."
+      return 1
+    else
+      echo "[INFO] Overwriting $step_name..."
+      return 0
+    fi
+  else
+    return 0
+  fi
+}
+
 # === USER INPUT ===
 read -p "Directory containing FASTQ files (from Dorado): " FASTQ_DIR
 read -p "Kraken2 database path: " DB_PATH
@@ -26,7 +46,14 @@ if [ ${#FASTQ_FILES[@]} -eq 0 ]; then
     echo "[ERROR] No FASTQ files found in $FASTQ_DIR"
     exit 1
 fi
-kraken2 build --db "$DB_PATH"
+
+#kraken2 db building
+if should_run_step "$DB_PATH/hash.k2d" "Kraken2 DB Build"; then
+  echo "Building Kraken2 database..."
+  conda activate kraken2_env
+  kraken2-build --standard --db "$DB_PATH" --threads "$THREADS"
+  kraken2-build --build --db "$DB_PATH" --threads "$THREADS"
+
 
 for INPUT_FILE in "${FASTQ_FILES[@]}"; do
     BASE=$(basename "$INPUT_FILE" .fastq)
