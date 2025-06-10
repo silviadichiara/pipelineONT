@@ -9,37 +9,38 @@ if ! command -v conda &> /dev/null; then
 fi
 
 eval "$(conda shell.bash hook)"
-
 echo "Starting Conda environment setup..."
 
 # === 1. preprocessing_env ===
 echo "Creating environment: preprocessing_env"
-conda create -y -n preprocessing_env -c bioconda -c conda-forge \
-  minimap2=2.28
+conda create -y -n preprocessing_env -c bioconda -c conda-forge minimap2=2.28
 
 echo "Activating preprocessing_env and installing pod5 via pip"
-conda activate preprocessing_env
+source activate preprocessing_env
 pip install pod5
 
+# Dorado install
 echo "Downloading and extracting Dorado v0.9.6..."
 echo "The current version of Dorado is suitable for both r9.4.1 and r10.4.1. Based on your sequencing run and configuration, you may need to use a newer version (v1.0.1)."
-echo "Check your chemistry and run settings and choose the correct version of Dorado on GitHub (https://github.com/nanoporetech/dorado/)."
+echo "Note: Make sure this version matches your ONT chemistry, if not, choose the correct version of Dorado on GitHub (https://github.com/nanoporetech/dorado/)."
 read -p "Path to the directory to install Dorado: " DORADO_DIR
-mkdir -p $DORADO_DIR
-cd $DORADO_DIR
+mkdir -p "$DORADO_DIR"
+pushd "$DORADO_DIR"
 curl -L "https://cdn.oxfordnanoportal.com/software/analysis/dorado-0.9.6-linux-x64.tar.gz" -o dorado.tar.gz
 tar -xzf dorado.tar.gz
 rm dorado.tar.gz
 ./dorado-0.9.6-linux-x64/bin/dorado --version
-cd -
+popd
 conda deactivate
 
 DORADO_BIN="$DORADO_DIR/dorado-0.9.6-linux-x64/bin"
 if [[ ":$PATH:" != *":$DORADO_BIN:"* ]]; then
   echo "Adding Dorado to PATH in ~/.bashrc"
-  echo "" >> ~/.bashrc
-  echo "# Added by Dorado installer" >> ~/.bashrc
-  echo "export PATH=\"\$PATH:$DORADO_BIN\"" >> ~/.bashrc
+  {
+    echo ""
+    echo "# Added by Dorado installer"
+    echo "export PATH=\"\$PATH:$DORADO_BIN\""
+  } >> ~/.bashrc
 fi
 source ~/.bashrc
 # === 2. kraken2_env ===
