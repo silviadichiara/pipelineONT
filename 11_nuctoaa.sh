@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-
+conda activate fasta3_env
 # Controllo che fasty36 sia installato
 if ! command -v fasty36 &> /dev/null; then
   echo "Error: fasty36 command not found. Please install it before running this script."
@@ -38,3 +38,4 @@ echo -e "\nSummary completed:"
 echo " - Readable format saved to: $OUTFMT0"
 echo " - Tabular format saved to: $OUTFMT6"
 echo " - Best hits summary saved to: $SUMMARY"
+conda deactivate
