@@ -39,6 +39,7 @@ mkdir -p "$KRAKEN2_OUT_DIR" "$FILTERED_OUT_DIR" "$NANOPLOT_DIR"
 
 # === [1/4] Kraken2 Classification ===
 echo "[1/4] Running Kraken2 classification..."
+
 conda activate kraken2_env
 shopt -s nullglob
 FASTQ_FILES=("$FASTQ_DIR"/*.fastq)
@@ -47,20 +48,22 @@ if [ ${#FASTQ_FILES[@]} -eq 0 ]; then
     exit 1
 fi
 
-#kraken2 db building
+# Kraken2 db building
 if should_run_step "$DB_PATH/hash.k2d" "Kraken2 DB Build"; then
-  echo "Building Kraken2 database..."
-  conda activate kraken2_env
+  echo "[INFO] Building Kraken2 database..."
   kraken2-build --standard --db "$DB_PATH" --threads "$THREADS"
   kraken2-build --build --db "$DB_PATH" --threads "$THREADS"
+else
+  echo "[INFO] Kraken2 database build skipped."
+fi
 
-
+# Kraken2 classification
 for INPUT_FILE in "${FASTQ_FILES[@]}"; do
     BASE=$(basename "$INPUT_FILE" .fastq)
     REPORT="$KRAKEN2_OUT_DIR/${BASE}.report"
     CLASSIFIED="$KRAKEN2_OUT_DIR/${BASE}_classified.out"
       
-    echo "→ Classifying $INPUT_FILE..."
+    echo "[INFO] Classifying $INPUT_FILE..."
     kraken2 --db "$DB_PATH" \
         --output "$CLASSIFIED" \
         --report "$REPORT" \
@@ -75,7 +78,7 @@ echo "[INFO] Kraken2 classification complete."
 
 # === [2/4] TaxID Filtering ===
 echo "[2/4] Filtering reads for TaxID $TAXID..."
-> "$MERGED_FASTQ"  # Reset merge file
+> "$MERGED_FASTQ"  # Reset merged file
 
 for CLASSIFIED_FILE in "$KRAKEN2_OUT_DIR"/*_classified.out; do
     BASE=$(basename "$CLASSIFIED_FILE" _classified.out)
@@ -101,14 +104,19 @@ done
 
 if [ ! -s "$MERGED_FASTQ" ]; then
     echo "[ERROR] No reads retained after filtering. Exiting."
+    conda deactivate
     exit 1
 fi
+
 conda deactivate
+
 # === [3/4] NanoPlot QC ===
 echo "[3/4] Running NanoPlot QC..."
 conda activate qc_env
+
 if ! command -v NanoPlot &> /dev/null; then
     echo "[ERROR] NanoPlot is not installed. Aborting."
+    conda deactivate
     exit 1
 fi
 
@@ -120,6 +128,8 @@ NanoPlot \
     --title "QC Report - merged_taxid${TAXID}.fastq" \
     --prefix "HCMV_taxid${TAXID}_report" \
     --outdir "$NANOPLOT_DIR"
+
 conda deactivate
+
 # === [4/4] DONE ===
 echo "[4/4] NanoPlot complete. Results saved in: $NANOPLOT_DIR"
