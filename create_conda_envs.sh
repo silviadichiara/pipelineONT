@@ -32,6 +32,14 @@ rm dorado.tar.gz
 cd -
 conda deactivate
 
+DORADO_BIN="$DORADO_DIR/dorado-1.0.1-linux-x64/bin"
+if [[ ":$PATH:" != *":$DORADO_BIN:"* ]]; then
+  echo "Adding Dorado to PATH in ~/.bashrc"
+  echo "" >> ~/.bashrc
+  echo "# Added by Dorado installer" >> ~/.bashrc
+  echo "export PATH=\"\$PATH:$DORADO_BIN\"" >> ~/.bashrc
+fi
+source ~/.bashrc
 # === 2. kraken2_env ===
 echo "Creating environment: kraken2_env"
 conda create -y -n kraken2_env -c bioconda -c conda-forge kraken2 seqtk
