@@ -26,12 +26,13 @@ if [ ${#FASTQ_FILES[@]} -eq 0 ]; then
     echo "[ERROR] No FASTQ files found in $FASTQ_DIR"
     exit 1
 fi
+k2 build --db "$DB_PATH"
 
 for INPUT_FILE in "${FASTQ_FILES[@]}"; do
     BASE=$(basename "$INPUT_FILE" .fastq)
     REPORT="$KRAKEN2_OUT_DIR/${BASE}.report"
     CLASSIFIED="$KRAKEN2_OUT_DIR/${BASE}_classified.out"
-
+      
     echo "→ Classifying $INPUT_FILE..."
     kraken2 --db "$DB_PATH" \
         --output "$CLASSIFIED" \
