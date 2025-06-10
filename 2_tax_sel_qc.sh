@@ -26,7 +26,7 @@ if [ ${#FASTQ_FILES[@]} -eq 0 ]; then
     echo "[ERROR] No FASTQ files found in $FASTQ_DIR"
     exit 1
 fi
-k2 build --db "$DB_PATH"
+kraken2 build --db "$DB_PATH"
 
 for INPUT_FILE in "${FASTQ_FILES[@]}"; do
     BASE=$(basename "$INPUT_FILE" .fastq)
