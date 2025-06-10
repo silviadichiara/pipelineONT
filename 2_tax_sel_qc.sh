@@ -1,5 +1,6 @@
 #!/bin/bash
 set -euo pipefail
+eval "$(conda shell.bash hook)"
 
 # === USER INPUT ===
 read -p "Directory containing FASTQ files (from Dorado): " FASTQ_DIR
