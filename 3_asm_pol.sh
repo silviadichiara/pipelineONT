@@ -1,6 +1,6 @@
 #!/bin/bash
-source ~/.bashrc
 set -euo pipefail
+eval "$(conda shell.bash hook)"
 
 # === USER INPUT ===
 read -p "==> Input reads (FASTQ file): " READS
