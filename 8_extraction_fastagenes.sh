@@ -1,5 +1,5 @@
 #!/bin/bash
-
+conda activate fasta3_env
 read -p "Enter path to the reference FASTA file: " FASTA
 read -p "Enter path to the TSV file (RBH_all.tsv): " TSV
 read -p "Enter desired output FASTA file path: " OUTPUT
@@ -59,5 +59,5 @@ FNR > 1 {
     close(out)  # flush output after each write
 }
 ' "$TSV"
-
+conda deactivate
 echo "Sequences successfully extracted to: $OUTPUT"
