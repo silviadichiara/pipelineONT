@@ -48,11 +48,24 @@ if [ ${#FASTQ_FILES[@]} -eq 0 ]; then
     exit 1
 fi
 
-# Kraken2 db building
+# Kraken2 db building with error handling
 if should_run_step "$DB_PATH/hash.k2d" "Kraken2 DB Build"; then
   echo "[INFO] Building Kraken2 database..."
-  kraken2-build --standard --db "$DB_PATH" --threads "$THREADS"
-  kraken2-build --build --db "$DB_PATH" --threads "$THREADS"
+
+  if ! kraken2-build --standard --db "$DB_PATH" --threads "$THREADS"; then
+    echo "[ERROR] Failed to download standard Kraken2 database files."
+    exit 1
+  fi
+
+  if ! kraken2-build --build --db "$DB_PATH" --threads "$THREADS"; then
+    echo "[ERROR] Failed to build Kraken2 database."
+    exit 1
+  fi
+
+  if [[ ! -f "$DB_PATH/hash.k2d" ]]; then
+    echo "[ERROR] Kraken2 database was not properly built. File 'hash.k2d' is missing."
+    exit 1
+  fi
 else
   echo "[INFO] Kraken2 database build skipped."
 fi
@@ -70,11 +83,13 @@ for INPUT_FILE in "${FASTQ_FILES[@]}"; do
         --threads "$THREADS" \
         "$INPUT_FILE" || {
             echo "[ERROR] Kraken2 failed on $INPUT_FILE"
+            conda deactivate
             exit 1
         }
 done
 
 echo "[INFO] Kraken2 classification complete."
+conda deactivate
 
 # === [2/4] TaxID Filtering ===
 echo "[2/4] Filtering reads for TaxID $TAXID..."
@@ -104,11 +119,8 @@ done
 
 if [ ! -s "$MERGED_FASTQ" ]; then
     echo "[ERROR] No reads retained after filtering. Exiting."
-    conda deactivate
     exit 1
 fi
-
-conda deactivate
 
 # === [3/4] NanoPlot QC ===
 echo "[3/4] Running NanoPlot QC..."
