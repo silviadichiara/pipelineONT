@@ -50,7 +50,14 @@ conda create -y -n kraken2_env -c bioconda -c conda-forge kraken2 seqtk
 # === 3. assembly_env ===
 echo "Creating environment: assembly_env"
 conda create -y -n assembly_env -c bioconda -c conda-forge \
-  flye canu hifiasm wtdbg paralleltask nextdenovo
+  flye canu hifiasm wtdbg paralleltask
+
+conda activate assembly_env
+ wget https://github.com/Nextomics/NextDenovo/releases/latest/download/NextDenovo.tgz
+ tar -vxzf NextDenovo.tgz && cd NextDenovo
+ conda deactivate
+
+ #AGGIUNGI AL PATH
 
 # === 4. polishing_env ===
 echo "Creating environment: polishing_env"
