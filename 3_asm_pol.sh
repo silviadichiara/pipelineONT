@@ -72,51 +72,80 @@ conda deactivate
 # === OTHER ASSEMBLERS ===
 conda activate "$ASSEMBLY_ENV"
 
+declare -A assemblies
+
 # -- Canu --
-Canu_DIR="$ROOT/canu"
-Canu_OUT="$Canu_DIR/${PROJECT_NAME}.contigs.fasta"
-if [[ ! -s "$Canu_OUT" ]]; then
-  echo "[INFO] Running Canu..."
-  mkdir -p "$Canu_DIR"
-  canu -p "$PROJECT_NAME" -d "$Canu_DIR" genomeSize="$GENOME_SIZE" \
-       -nanopore-raw "$READS" useGrid=false minReadLength=500 maxThreads=$THREADS
+read -p "==> Vuoi eseguire Canu? [y/n] " run_canu
+if [[ "$run_canu" == "y" ]]; then
+  Canu_DIR="$ROOT/canu"
+  Canu_OUT="$Canu_DIR/${PROJECT_NAME}.contigs.fasta"
+  if [[ ! -s "$Canu_OUT" ]]; then
+    echo "[INFO] Running Canu..."
+    mkdir -p "$Canu_DIR"
+    canu -p "$PROJECT_NAME" -d "$Canu_DIR" genomeSize="$GENOME_SIZE" \
+         -nanopore-raw "$READS" useGrid=false minReadLength=500 maxThreads=$THREADS
+  fi
+  assemblies[canu]="$Canu_OUT"
+else
+  echo "[INFO] Skipping Canu."
 fi
 
 # -- Flye --
-Flye_DIR="$ROOT/flye"
-Flye_OUT="$Flye_DIR/assembly.fasta"
-if [[ ! -s "$Flye_OUT" ]]; then
-  echo "[INFO] Running Flye..."
-  mkdir -p "$Flye_DIR"
-  flye --nano-corr "$READS" --out-dir "$Flye_DIR" \
-       --threads "$THREADS" --genome-size "$GENOME_SIZE" \
-       --min-overlap 1000 --asm-coverage 50 | tee "$Flye_DIR/flye.log"
+read -p "==> Vuoi eseguire Flye? [y/n] " run_flye
+if [[ "$run_flye" == "y" ]]; then
+  Flye_DIR="$ROOT/flye"
+  Flye_OUT="$Flye_DIR/assembly.fasta"
+  if [[ ! -s "$Flye_OUT" ]]; then
+    echo "[INFO] Running Flye..."
+    mkdir -p "$Flye_DIR"
+    flye --nano-corr "$READS" --out-dir "$Flye_DIR" \
+         --threads "$THREADS" --genome-size "$GENOME_SIZE" \
+         --min-overlap 1000 --asm-coverage 50 | tee "$Flye_DIR/flye.log"
+  fi
+  assemblies[flye]="$Flye_OUT"
+else
+  echo "[INFO] Skipping Flye."
 fi
 
 # -- Wtdbg2 --
-Wtdbg2_DIR="$ROOT/wtdbg2"
-Wtdbg2_OUT="$Wtdbg2_DIR/wtdbg_assembly.fasta"
-if [[ ! -s "$Wtdbg2_OUT" ]]; then
-  echo "[INFO] Running Wtdbg2..."
-  mkdir -p "$Wtdbg2_DIR"
-  gunzip -c "$Canu_DIR/${PROJECT_NAME}.trimmedReads.fasta.gz" > "$Wtdbg2_DIR/corrected_reads.fasta"
-  wtdbg2 -i "$Wtdbg2_DIR/corrected_reads.fasta" -o "$Wtdbg2_DIR/wtdbg_assembly" \
-         -t $THREADS -g $GENOME_SIZE -p 0 -k 15 -AS 2 -s 0.05 -L 5000
-  wtpoa-cns -t $THREADS -i "$Wtdbg2_DIR/wtdbg_assembly.ctg.lay.gz" -fo "$Wtdbg2_OUT"
+read -p "==> Vuoi eseguire Wtdbg2? [y/n] " run_wtdbg2
+if [[ "$run_wtdbg2" == "y" ]]; then
+  Wtdbg2_DIR="$ROOT/wtdbg2"
+  Wtdbg2_OUT="$Wtdbg2_DIR/wtdbg_assembly.fasta"
+  if [[ ! -s "$Wtdbg2_OUT" ]]; then
+    echo "[INFO] Running Wtdbg2..."
+    mkdir -p "$Wtdbg2_DIR"
+    gunzip -c "$Canu_DIR/${PROJECT_NAME}.trimmedReads.fasta.gz" > "$Wtdbg2_DIR/corrected_reads.fasta"
+    wtdbg2 -i "$Wtdbg2_DIR/corrected_reads.fasta" -o "$Wtdbg2_DIR/wtdbg_assembly" \
+           -t $THREADS -g $GENOME_SIZE -p 0 -k 15 -AS 2 -s 0.05 -L 5000
+    wtpoa-cns -t $THREADS -i "$Wtdbg2_DIR/wtdbg_assembly.ctg.lay.gz" -fo "$Wtdbg2_OUT"
+  fi
+  assemblies[wtdbg2]="$Wtdbg2_OUT"
+else
+  echo "[INFO] Skipping Wtdbg2."
 fi
 
 # -- Hifiasm --
-Hifiasm_DIR="$ROOT/hifiasm"
-Hifiasm_OUT="$Hifiasm_DIR/${PROJECT_NAME}_from_gfa.fasta"
-if [[ ! -s "$Hifiasm_OUT" ]]; then
-  echo "[INFO] Running Hifiasm..."
-  mkdir -p "$Hifiasm_DIR"
-  hifiasm -o "$Hifiasm_DIR/$PROJECT_NAME" -t $THREADS --ont "$READS" \
-      2> "$Hifiasm_DIR/hifiasm_error.log"
-  awk '/^S/{print ">"$2"\n"$3}' "$Hifiasm_DIR/${PROJECT_NAME}.bp.p_ctg.gfa" > "$Hifiasm_OUT"
+read -p "==> Vuoi eseguire Hifiasm? [y/n] " run_hifiasm
+if [[ "$run_hifiasm" == "y" ]]; then
+  Hifiasm_DIR="$ROOT/hifiasm"
+  Hifiasm_OUT="$Hifiasm_DIR/${PROJECT_NAME}_from_gfa.fasta"
+  if [[ ! -s "$Hifiasm_OUT" ]]; then
+    echo "[INFO] Running Hifiasm..."
+    mkdir -p "$Hifiasm_DIR"
+    hifiasm -o "$Hifiasm_DIR/$PROJECT_NAME" -t $THREADS --ont "$READS" \
+        2> "$Hifiasm_DIR/hifiasm_error.log"
+    awk '/^S/{print ">"$2"\n"$3}' "$Hifiasm_DIR/${PROJECT_NAME}.bp.p_ctg.gfa" > "$Hifiasm_OUT"
+  fi
+  assemblies[hifiasm]="$Hifiasm_OUT"
+else
+  echo "[INFO] Skipping Hifiasm."
 fi
 
 conda deactivate
+
+# (il resto dello script, inclusi polishing, QC e mapping, resta invariato ed è da mantenere)
+# Se vuoi che continui ad adattare anche polishing, QUAST, mapping, fammi sapere!
 
 # === PRE-POLISHING QC ===
 conda activate "$POLISHING_ENV"
