@@ -24,24 +24,26 @@ if [[ ! -e "$READS" ]]; then
 fi
 
 # === NEXTDENOVO ===
-echo "[INFO] Running NextDenovo..."
-conda activate ndn_env
-ND_DIR="$ROOT/nextdenovo"
-ND_OUTPUT=$(find "$ND_DIR" -name "*nd.asm*.fasta" | head -n 1)
+read -p "==> Vuoi eseguire NextDenovo? [y/n] " run_nextdenovo
+if [[ "$run_nextdenovo" == "y" ]]; then
+  echo "[INFO] Running NextDenovo..."
+  conda activate ndn_env
+  ND_DIR="$ROOT/nextdenovo"
+  ND_OUTPUT=$(find "$ND_DIR" -name "*nd.asm*.fasta" | head -n 1)
 
-if [[ ! -s "$ND_OUTPUT" ]]; then
-  mkdir -p "$ND_DIR"
+  if [[ ! -s "$ND_OUTPUT" ]]; then
+    mkdir -p "$ND_DIR"
 
-  if [[ -d "$READS" ]]; then
-    find "$READS" -type f \( -iname "*.fastq*" -o -iname "*.fq*" \) > "$ND_DIR/input.fofn"
-  elif [[ -f "$READS" ]]; then
-    echo "$READS" > "$ND_DIR/input.fofn"
-  else
-    echo "[ERROR] Reads input is neither file nor directory: $READS"
-    exit 1
-  fi
+    if [[ -d "$READS" ]]; then
+      find "$READS" -type f \( -iname "*.fastq*" -o -iname "*.fq*" \) > "$ND_DIR/input.fofn"
+    elif [[ -f "$READS" ]]; then
+      echo "$READS" > "$ND_DIR/input.fofn"
+    else
+      echo "[ERROR] Reads input is neither file nor directory: $READS"
+      exit 1
+    fi
 
-  cat > "$ND_DIR/run.cfg" <<EOF
+    cat > "$ND_DIR/run.cfg" <<EOF
 [General]
 job_type = local
 job_prefix = $PROJECT_NAME
@@ -64,10 +66,14 @@ minimap2_options = -t $THREADS
 minimap2_options = -t $THREADS
 EOF
 
-  nextDenovo "$ND_DIR/run.cfg" | tee "$ND_DIR/nextdenovo.log"
-  ND_OUTPUT=$(find "$ND_DIR" -name "*nd.asm*.fasta" | head -n 1)
+    nextDenovo "$ND_DIR/run.cfg" | tee "$ND_DIR/nextdenovo.log"
+    ND_OUTPUT=$(find "$ND_DIR" -name "*nd.asm*.fasta" | head -n 1)
+  fi
+  conda deactivate
+else
+  echo "[INFO] Skipping NextDenovo."
+  ND_OUTPUT=""
 fi
-conda deactivate
 
 # === OTHER ASSEMBLERS ===
 conda activate "$ASSEMBLY_ENV"
@@ -149,8 +155,8 @@ conda deactivate
 
 # === PRE-POLISHING QC ===
 conda activate "$POLISHING_ENV"
-declare -A assemblies=(
-  [nextdenovo]="$ND_OUTPUT"
+declare -A assemblies=( 
+  [nextdenovo]="$ND_OUTPUT" 
   [canu]="$Canu_OUT"
   [flye]="$Flye_OUT"
   [wtdbg2]="$Wtdbg2_OUT"
