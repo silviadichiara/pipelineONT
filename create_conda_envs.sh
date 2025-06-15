@@ -53,7 +53,33 @@ conda create -y -n kraken2_env -c bioconda -c conda-forge kraken2 seqtk
 # === 3. assembly_env ===
 echo "Creating environment: assembly_env"
 conda create -y -n assembly_env -c bioconda -c conda-forge \
-  flye canu hifiasm wtdbg paralleltask
+  flye hifiasm wtdbg paralleltask
+
+echo "Downloading and extracting Canu v2.3..."
+read -p "Path to the directory where Canu should be installed: " CANU_DIR
+
+mkdir -p "$CANU_DIR"
+pushd "$CANU_DIR"
+curl -LRO https://github.com/marbl/canu/releases/download/v2.3/canu-2.3.Linux-amd64.tar.xz
+tar -xJf canu-2.3.Linux-amd64.tar.xz
+rm canu-2.3.Linux-amd64.tar.xz
+
+./canu-2.3/Linux-amd64/bin/canu --version
+
+popd
+
+CANU_BIN="$CANU_DIR/canu-2.3/Linux-amd64/bin"
+if [[ ":$PATH:" != *":$CANU_BIN:"* ]]; then
+  echo "Adding Canu to PATH in ~/.bashrc"
+  {
+    echo ""
+    echo "# Added by Canu installer"
+    echo "export PATH=\"\$PATH:$CANU_BIN\""
+  } >> ~/.bashrc
+fi
+
+export PATH="$PATH:$CANU_BIN"
+
 
 # === 4. nextdenovo in separate env ===
 echo "Creating environment: ndn_env (NextDenovo)"
