@@ -55,6 +55,9 @@ echo "Creating environment: assembly_env"
 conda create -y -n assembly_env -c bioconda -c conda-forge \
   flye hifiasm wtdbg paralleltask
 
+conda activate assembly_env
+conda install -c conda-forge openjdk=8
+
 echo "Downloading and extracting Canu v2.3..."
 read -p "Path to the directory where Canu should be installed: " CANU_DIR
 
